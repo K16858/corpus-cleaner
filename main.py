@@ -96,6 +96,30 @@ def main():
         help='文末記号で終わる文の最小比率（デフォルト: 0.7）'
     )
     parser.add_argument(
+        '--min-hiragana-ratio',
+        type=float,
+        default=0.3,
+        help='ひらがなの最小比率（デフォルト: 0.3）'
+    )
+    parser.add_argument(
+        '--max-hiragana-ratio',
+        type=float,
+        default=0.8,
+        help='ひらがなの最大比率（デフォルト: 0.8）'
+    )
+    parser.add_argument(
+        '--min-kanji-ratio',
+        type=float,
+        default=0.1,
+        help='漢字の最小比率（デフォルト: 0.1）'
+    )
+    parser.add_argument(
+        '--max-kanji-ratio',
+        type=float,
+        default=0.5,
+        help='漢字の最大比率（デフォルト: 0.5）'
+    )
+    parser.add_argument(
         '--stats-output',
         type=str,
         default=None,
@@ -125,6 +149,10 @@ def main():
         'max_sentence_length': args.max_sentence_length,
         'require_sentence_end': args.require_sentence_end,
         'min_sentence_end_ratio': args.min_sentence_end_ratio,
+        'min_hiragana_ratio': args.min_hiragana_ratio,
+        'max_hiragana_ratio': args.max_hiragana_ratio,
+        'min_kanji_ratio': args.min_kanji_ratio,
+        'max_kanji_ratio': args.max_kanji_ratio,
     }
     
     # クリーナーとプロセッサーの作成

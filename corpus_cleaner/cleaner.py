@@ -30,6 +30,11 @@ class CorpusCleaner:
         self.max_sentence_length = self.config.get('max_sentence_length', 500)
         self.require_sentence_end = self.config.get('require_sentence_end', True)
         self.min_sentence_end_ratio = self.config.get('min_sentence_end_ratio', 0.7)
+        # ひらがな・カタカナ・漢字の比率
+        self.min_hiragana_ratio = self.config.get('min_hiragana_ratio', 0.3)
+        self.max_hiragana_ratio = self.config.get('max_hiragana_ratio', 0.8)
+        self.min_kanji_ratio = self.config.get('min_kanji_ratio', 0.1)
+        self.max_kanji_ratio = self.config.get('max_kanji_ratio', 0.5)
         
         # 重複検出用のセット
         self.seen_texts: Set[str] = set()
@@ -72,6 +77,11 @@ class CorpusCleaner:
         # 文分割の厳格化チェック
         if not self._check_sentence_structure(text):
             self.stats['sentence_structure_filtered'] += 1
+            return None
+        
+        # ひらがな・カタカナ・漢字の比率チェック
+        if not self._check_japanese_character_ratio(text):
+            self.stats['japanese_character_ratio_filtered'] += 1
             return None
         
         normalized_text = self._normalize_text(text)
@@ -279,6 +289,54 @@ class CorpusCleaner:
                 end_ratio = completed_sentences / total_sentences
                 if end_ratio < self.min_sentence_end_ratio:
                     return False
+        
+        return True
+    
+    def _check_japanese_character_ratio(self, text: str) -> bool:
+        """ひらがな・カタカナ・漢字の比率チェック"""
+        if not text:
+            return False
+        
+        # 日本語文字のカウント
+        hiragana_count = 0
+        katakana_count = 0
+        kanji_count = 0
+        total_japanese_chars = 0
+        
+        for char in text:
+            # ひらがな（U+3040-U+309F）
+            if '\u3040' <= char <= '\u309F':
+                hiragana_count += 1
+                total_japanese_chars += 1
+            # カタカナ（U+30A0-U+30FF）
+            elif '\u30A0' <= char <= '\u30FF':
+                katakana_count += 1
+                total_japanese_chars += 1
+            # 漢字（CJK統合漢字 U+4E00-U+9FFF）
+            elif '\u4E00' <= char <= '\u9FFF':
+                kanji_count += 1
+                total_japanese_chars += 1
+        
+        # 日本語文字が少なすぎる場合は除外
+        if total_japanese_chars < 10:
+            return False
+        
+        total_length = len(text)
+        if total_length == 0:
+            return False
+        
+        # 比率を計算
+        hiragana_ratio = hiragana_count / total_length
+        kanji_ratio = kanji_count / total_length
+        
+        # 比率チェック（一般に漢字3割、ひらがな7割前後）
+        # ひらがなの比率が範囲外の場合は除外
+        if hiragana_ratio < self.min_hiragana_ratio or hiragana_ratio > self.max_hiragana_ratio:
+            return False
+        
+        # 漢字の比率が範囲外の場合は除外
+        if kanji_ratio < self.min_kanji_ratio or kanji_ratio > self.max_kanji_ratio:
+            return False
         
         return True
     

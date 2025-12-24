@@ -2,3 +2,6 @@ docs/notes/
 data/
 .venv/
 __pycache__/
+*.jsonl
+*.json
+*.txt

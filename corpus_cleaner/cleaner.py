@@ -26,6 +26,10 @@ class CorpusCleaner:
         self.max_html_ratio = self.config.get('max_html_ratio', 0.2)
         self.max_emoji_ratio = self.config.get('max_emoji_ratio', 0.1)
         self.max_repeat_chars = self.config.get('max_repeat_chars', 3)
+        # 文分割の厳格化
+        self.max_sentence_length = self.config.get('max_sentence_length', 500)
+        self.require_sentence_end = self.config.get('require_sentence_end', True)
+        self.min_sentence_end_ratio = self.config.get('min_sentence_end_ratio', 0.7)
         
         # 重複検出用のセット
         self.seen_texts: Set[str] = set()
@@ -63,6 +67,11 @@ class CorpusCleaner:
         
         if not self._check_impurities(text):
             self.stats['impurity_filtered'] += 1
+            return None
+        
+        # 文分割の厳格化チェック
+        if not self._check_sentence_structure(text):
+            self.stats['sentence_structure_filtered'] += 1
             return None
         
         normalized_text = self._normalize_text(text)
@@ -229,6 +238,49 @@ class CorpusCleaner:
         
         emoji_ratio = emoji_count / total_length
         return emoji_ratio > self.max_emoji_ratio
+    
+    def _check_sentence_structure(self, text: str) -> bool:
+        """文分割の厳格化チェック"""
+        # 文を分割（句点、感嘆符、疑問符で分割）
+        # 文末記号も含めて分割
+        sentence_parts = re.split(r'([。！？])', text)
+        
+        # 文と文末記号をペアにする
+        sentences = []
+        current_sentence = ""
+        for part in sentence_parts:
+            if part in '。！？':
+                if current_sentence.strip():
+                    sentences.append((current_sentence.strip(), part))
+                current_sentence = ""
+            else:
+                current_sentence += part
+        
+        # 最後の文（文末記号がない可能性がある）
+        if current_sentence.strip():
+            sentences.append((current_sentence.strip(), ""))
+        
+        if not sentences:
+            return False
+        
+        # 1. 異常に長い文の検出
+        for sentence_text, _ in sentences:
+            if len(sentence_text) > self.max_sentence_length:
+                return False
+        
+        # 2. 文の完結性チェック
+        if self.require_sentence_end:
+            # 文末記号で終わっている文の数をカウント
+            completed_sentences = sum(1 for _, end_mark in sentences if end_mark)
+            total_sentences = len(sentences)
+            
+            # 文末記号の比率を計算
+            if total_sentences > 0:
+                end_ratio = completed_sentences / total_sentences
+                if end_ratio < self.min_sentence_end_ratio:
+                    return False
+        
+        return True
     
     def _normalize_text(self, text: str) -> str:
         """

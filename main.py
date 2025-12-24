@@ -72,6 +72,30 @@ def main():
         help='繰り返し文字の最大回数（デフォルト: 3）'
     )
     parser.add_argument(
+        '--max-sentence-length',
+        type=int,
+        default=500,
+        help='1文の最大文字数（デフォルト: 500）'
+    )
+    parser.add_argument(
+        '--require-sentence-end',
+        action='store_true',
+        default=True,
+        help='文末記号（。！？）で終わることを要求（デフォルト: True）'
+    )
+    parser.add_argument(
+        '--no-require-sentence-end',
+        dest='require_sentence_end',
+        action='store_false',
+        help='文末記号の要求を無効化'
+    )
+    parser.add_argument(
+        '--min-sentence-end-ratio',
+        type=float,
+        default=0.7,
+        help='文末記号で終わる文の最小比率（デフォルト: 0.7）'
+    )
+    parser.add_argument(
         '--stats-output',
         type=str,
         default=None,
@@ -98,6 +122,9 @@ def main():
         'max_html_ratio': args.max_html_ratio,
         'max_emoji_ratio': args.max_emoji_ratio,
         'max_repeat_chars': args.max_repeat_chars,
+        'max_sentence_length': args.max_sentence_length,
+        'require_sentence_end': args.require_sentence_end,
+        'min_sentence_end_ratio': args.min_sentence_end_ratio,
     }
     
     # クリーナーとプロセッサーの作成

@@ -1,2 +1,4 @@
 docs/notes/
 data/
+.venv/
+__pycache__/

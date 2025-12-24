@@ -6,16 +6,16 @@ from typing import Dict, Any
 from pathlib import Path
 from tqdm import tqdm
 
-from .cleaner import TextCleaner
+from .cleaner import CorpusCleaner
 
 
 class JSONLProcessor:
     """JSONLファイルのストリーミング処理クラス"""
     
-    def __init__(self, cleaner: TextCleaner, text_field: str = 'text'):
+    def __init__(self, cleaner: CorpusCleaner, text_field: str = 'content'):
         """
         Args:
-            cleaner: TextCleanerインスタンス
+            cleaner: CorpusCleanerインスタンス
             text_field: テキストが格納されているフィールド名
         """
         self.cleaner = cleaner

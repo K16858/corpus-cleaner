@@ -60,6 +60,18 @@ def main():
         help='HTMLの最大比率（デフォルト: 0.2）'
     )
     parser.add_argument(
+        '--max-emoji-ratio',
+        type=float,
+        default=0.1,
+        help='絵文字の最大比率（デフォルト: 0.1）'
+    )
+    parser.add_argument(
+        '--max-repeat-chars',
+        type=int,
+        default=3,
+        help='繰り返し文字の最大回数（デフォルト: 3）'
+    )
+    parser.add_argument(
         '--stats-output',
         type=str,
         default=None,
@@ -84,6 +96,8 @@ def main():
         'max_special_char_ratio': args.max_special_char_ratio,
         'max_code_ratio': args.max_code_ratio,
         'max_html_ratio': args.max_html_ratio,
+        'max_emoji_ratio': args.max_emoji_ratio,
+        'max_repeat_chars': args.max_repeat_chars,
     }
     
     # クリーナーとプロセッサーの作成

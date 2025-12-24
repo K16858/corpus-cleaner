@@ -53,10 +53,6 @@ class CorpusCleaner:
             self.stats['invalid_text_type'] += 1
             return None
         
-        # 文字の正規化（最初に実行）
-        text = self._normalize_text(text)
-        
-        # 正規化後のテキストでチェック
         if not self._check_length(text):
             self.stats['length_filtered'] += 1
             return None
@@ -69,8 +65,8 @@ class CorpusCleaner:
             self.stats['impurity_filtered'] += 1
             return None
         
-        # すべてのチェックを通過 - 正規化されたテキストをエントリに反映
-        entry[text_field] = text
+        normalized_text = self._normalize_text(text)
+        entry[text_field] = normalized_text
         self.stats['kept'] += 1
         return entry
     

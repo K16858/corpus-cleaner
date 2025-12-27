@@ -105,28 +105,28 @@ class CorpusCleaner:
     def _check_impurities(self, text: str) -> bool:
         """不純物チェック"""
         # HTMLチェック
-        if self._has_too_much_html(text):
+        if self._check_html_ratio(text):
             return False
         
         # コードチェック
-        if self._has_too_much_code(text):
+        if self._check_code_ratio(text):
             return False
         
         # ログチェック
-        if self._looks_like_log(text):
+        if self._check_log_pattern(text):
             return False
         
         # 特殊記号チェック
-        if self._has_too_many_special_chars(text):
+        if self._check_special_char_ratio(text):
             return False
         
         # 絵文字チェック
-        if self._has_too_many_emojis(text):
+        if self._check_emoji_ratio(text):
             return False
         
         return True
     
-    def _has_too_much_html(self, text: str) -> bool:
+    def _check_html_ratio(self, text: str) -> bool:
         """HTMLタグが多すぎるかチェック"""
         soup = BeautifulSoup(text, 'html.parser')
         html_tags = soup.find_all()
@@ -144,7 +144,7 @@ class CorpusCleaner:
         html_ratio = html_text_length / total_length
         return html_ratio > self.max_html_ratio
     
-    def _has_too_much_code(self, text: str) -> bool:
+    def _check_code_ratio(self, text: str) -> bool:
         """コードが多すぎるかチェック"""
         # コードらしいパターンを検出
         code_patterns = [
@@ -181,7 +181,7 @@ class CorpusCleaner:
         code_ratio = code_char_count / total_length
         return code_ratio > self.max_code_ratio
     
-    def _looks_like_log(self, text: str) -> bool:
+    def _check_log_pattern(self, text: str) -> bool:
         """ログファイルらしいかチェック"""
         # ログパターン
         log_patterns = [
@@ -198,7 +198,7 @@ class CorpusCleaner:
         # 3つ以上のパターンがマッチしたらログと判断
         return match_count >= 3
     
-    def _has_too_many_special_chars(self, text: str) -> bool:
+    def _check_special_char_ratio(self, text: str) -> bool:
         """特殊記号が多すぎるかチェック"""
         if not text:
             return False
@@ -212,7 +212,7 @@ class CorpusCleaner:
         special_ratio = special_count / total_length
         return special_ratio > self.max_special_char_ratio
     
-    def _has_too_many_emojis(self, text: str) -> bool:
+    def _check_emoji_ratio(self, text: str) -> bool:
         """絵文字が多すぎるかチェック"""
         if not text:
             return False

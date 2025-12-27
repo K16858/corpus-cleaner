@@ -151,14 +151,14 @@ class ProcessingPipeline:
         print("=" * 60)
         print("Phase 1: 基本クリーニング処理")
         print("=" * 60)
-        phase1_stats = self._phase1_basic_cleaning(input_path, phase1_output, show_progress)
+        phase1_stats = self._basic_cleaning(input_path, phase1_output, show_progress)
         
         phase2_output = str(Path(output_path).parent / f"{Path(output_path).stem}_phase2.jsonl")
         if self.kenlm_model:
             print("\n" + "=" * 60)
             print("Phase 2: KenLMによる高速perplexity評価")
             print("=" * 60)
-            phase2_stats = self._phase2_kenlm_filtering(phase1_output, phase2_output, show_progress)
+            phase2_stats = self._kenlm_filtering(phase1_output, phase2_output, show_progress)
         else:
             print("\nKenLMモデルが利用できないため、Phase 2をスキップします。")
             phase2_output = phase1_output
@@ -168,7 +168,7 @@ class ProcessingPipeline:
             print("\n" + "=" * 60)
             print("Phase 3: LLMによる最終評価")
             print("=" * 60)
-            final_stats = self._phase3_llm_filtering(phase2_output, output_path, show_progress)
+            final_stats = self._llm_filtering(phase2_output, output_path, show_progress)
         else:
             import shutil
             shutil.copy(phase2_output, output_path)
@@ -182,7 +182,7 @@ class ProcessingPipeline:
         
         return stats
     
-    def _phase1_basic_cleaning(
+    def _basic_cleaning(
         self,
         input_path: str,
         output_path: str,
@@ -228,7 +228,7 @@ class ProcessingPipeline:
         
         return stats
     
-    def _phase2_kenlm_filtering(
+    def _kenlm_filtering(
         self,
         input_path: str,
         output_path: str,
@@ -291,7 +291,7 @@ class ProcessingPipeline:
             'total_excluded': total_filtered
         }
     
-    def _phase3_llm_filtering(
+    def _llm_filtering(
         self,
         input_path: str,
         output_path: str,

@@ -39,7 +39,7 @@ class ProcessingPipeline:
         text_field: str = 'content',
         kenlm_model_path: Optional[str] = None,
         sentencepiece_model_path: Optional[str] = None,
-        max_kenlm_perplexity: float = 100.0,
+        max_kenlm_perplexity: float = 500.0,
         use_llm: Optional[bool] = None,
         llm_model_name: str = "rinna/gemma-2-baku-2b",
         max_llm_perplexity: float = 50.0,
@@ -235,7 +235,6 @@ class ProcessingPipeline:
         show_progress: bool
     ) -> Dict[str, Any]:
         """Phase 2: KenLMによる高速perplexity評価"""
-        import math
         
         total_lines = self._count_lines(input_path)
         total_processed = 0
@@ -270,22 +269,12 @@ class ProcessingPipeline:
                         else:
                             sentence = " ".join(text)
                         
-                        score = self.kenlm_model.score(sentence, bos=True, eos=True)
+                        perplexity = self.kenlm_model.perplexity(sentence)
                         
-                        if self.sentencepiece_model:
-                            words = len(tokens) + 1
-                        else:
-                            words = len(text.split()) + 1
-                        
-                        if words > 0:
-                            perplexity = 10 ** (-score / words)
-                            
-                            if perplexity <= self.max_kenlm_perplexity:
-                                json.dump(entry, outfile, ensure_ascii=False)
-                                outfile.write('\n')
-                                total_kept += 1
-                            else:
-                                total_filtered += 1
+                        if perplexity <= self.max_kenlm_perplexity:
+                            json.dump(entry, outfile, ensure_ascii=False)
+                            outfile.write('\n')
+                            total_kept += 1
                         else:
                             total_filtered += 1
                     except Exception:

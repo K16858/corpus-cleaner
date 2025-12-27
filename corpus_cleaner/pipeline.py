@@ -1,6 +1,7 @@
 """3段階処理パイプライン"""
 
 import json
+import unicodedata
 from typing import Dict, Any, Optional
 from pathlib import Path
 from tqdm import tqdm
@@ -13,6 +14,13 @@ try:
 except ImportError:
     KENLM_AVAILABLE = False
     kenlm = None
+
+try:
+    import sentencepiece as spm
+    SENTENCEPIECE_AVAILABLE = True
+except ImportError:
+    SENTENCEPIECE_AVAILABLE = False
+    spm = None
 
 try:
     from .perplexity import PerplexityCalculator
@@ -30,6 +38,7 @@ class ProcessingPipeline:
         cleaner: CorpusCleaner,
         text_field: str = 'content',
         kenlm_model_path: Optional[str] = None,
+        sentencepiece_model_path: Optional[str] = None,
         max_kenlm_perplexity: float = 100.0,
         use_llm: Optional[bool] = None,
         llm_model_name: str = "rinna/gemma-2-baku-2b",
@@ -54,29 +63,47 @@ class ProcessingPipeline:
         self.auto_detect_models = auto_detect_models
         
         self.kenlm_model = None
+        self.sentencepiece_model = None
+        
+        if not KENLM_AVAILABLE:
+            return
+        
+        import os
+        
         if kenlm_model_path:
-            if KENLM_AVAILABLE:
+            if os.path.exists(kenlm_model_path):
                 try:
                     self.kenlm_model = kenlm.Model(kenlm_model_path)
-                    print(f"KenLMモデルを読み込みました: {kenlm_model_path}")
-                except Exception as e:
-                    print(f"警告: KenLMモデルの読み込みに失敗しました: {e}")
-                    print("KenLM処理はスキップされます。")
-            else:
-                print("警告: KenLMが利用できません。インストール: pip install kenlm")
-        elif auto_detect_models and KENLM_AVAILABLE:
-            import os
+                    if sentencepiece_model_path and SENTENCEPIECE_AVAILABLE and os.path.exists(sentencepiece_model_path):
+                        self.sentencepiece_model = spm.SentencePieceProcessor()
+                        self.sentencepiece_model.load(sentencepiece_model_path)
+                except Exception:
+                    pass
+        elif auto_detect_models:
             common_paths = [
-                'model.bin',
-                'kenlm_model.bin',
-                'lm.bin',
-                os.path.expanduser('~/kenlm_model.bin'),
+                'model/ja.arpa.bin',
+                'model/model.bin',
+                'model/kenlm_model.bin',
+                'model/lm.bin',
             ]
             for path in common_paths:
                 if os.path.exists(path):
                     try:
                         self.kenlm_model = kenlm.Model(path)
-                        print(f"KenLMモデルを自動検出して読み込みました: {path}")
+                        if SENTENCEPIECE_AVAILABLE:
+                            sp_paths = [
+                                os.path.join(os.path.dirname(path), 'ja.sp.model'),
+                                'model/ja.sp.model',
+                                'ja.sp.model',
+                            ]
+                            for sp_path in sp_paths:
+                                if os.path.exists(sp_path):
+                                    try:
+                                        self.sentencepiece_model = spm.SentencePieceProcessor()
+                                        self.sentencepiece_model.load(sp_path)
+                                        break
+                                    except Exception:
+                                        continue
                         break
                     except Exception:
                         continue
@@ -143,7 +170,6 @@ class ProcessingPipeline:
             print("=" * 60)
             final_stats = self._phase3_llm_filtering(phase2_output, output_path, show_progress)
         else:
-            print("\nLLM処理が無効または利用できないため、Phase 3をスキップします。")
             import shutil
             shutil.copy(phase2_output, output_path)
             final_stats = {}
@@ -237,10 +263,22 @@ class ProcessingPipeline:
                         continue
                     
                     try:
-                        score = self.kenlm_model.score(text, bos=True, eos=True)
-                        words = len(text.split())
+                        if self.sentencepiece_model:
+                            normalized_text = unicodedata.normalize('NFD', text)
+                            tokens = self.sentencepiece_model.encode(normalized_text, out_type=str)
+                            sentence = " ".join(tokens)
+                        else:
+                            sentence = " ".join(text)
+                        
+                        score = self.kenlm_model.score(sentence, bos=True, eos=True)
+                        
+                        if self.sentencepiece_model:
+                            words = len(tokens) + 1
+                        else:
+                            words = len(text.split()) + 1
+                        
                         if words > 0:
-                            perplexity = math.exp(-score / words)
+                            perplexity = 10 ** (-score / words)
                             
                             if perplexity <= self.max_kenlm_perplexity:
                                 json.dump(entry, outfile, ensure_ascii=False)

@@ -1,5 +1,6 @@
 docs/notes/
 data/
+model/
 .venv/
 __pycache__/
 *.jsonl

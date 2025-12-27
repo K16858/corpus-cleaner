@@ -124,7 +124,13 @@ def main():
         '--kenlm-model',
         type=str,
         default=None,
-        help='KenLMモデルファイルのパス（Phase 2で使用、未指定の場合は自動検出を試みる）'
+        help='KenLMモデルファイルのパス（Phase 2で使用、.bin形式、未指定の場合は自動検出を試みる）'
+    )
+    parser.add_argument(
+        '--sentencepiece-model',
+        type=str,
+        default=None,
+        help='SentencePieceモデルファイルのパス（.model形式、cc_netのja.sp.modelなど）'
     )
     parser.add_argument(
         '--no-kenlm',
@@ -218,6 +224,7 @@ def main():
         cleaner=cleaner,
         text_field=args.text_field,
         kenlm_model_path=kenlm_model_path,
+        sentencepiece_model_path=args.sentencepiece_model,
         max_kenlm_perplexity=args.max_kenlm_perplexity,
         use_llm=use_llm,
         llm_model_name=args.llm_model,

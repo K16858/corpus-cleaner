@@ -150,7 +150,7 @@ class PerplexityCalculator:
         
         return results
     
-    def is_high_quality(self, text: str, max_perplexity: float = 100.0) -> bool:
+    def is_high_quality(self, text: str, max_perplexity: float = 50.0) -> bool:
         """
         テキストが高品質かどうかを判定
         

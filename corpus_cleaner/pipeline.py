@@ -33,7 +33,7 @@ class ProcessingPipeline:
         max_kenlm_perplexity: float = 100.0,
         use_llm: Optional[bool] = None,
         llm_model_name: str = "rinna/gemma-2-baku-2b",
-        max_llm_perplexity: float = 100.0,
+        max_llm_perplexity: float = 50.0,
         auto_detect_models: bool = True
     ):
         """

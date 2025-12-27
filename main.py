@@ -160,8 +160,8 @@ def main():
     parser.add_argument(
         '--max-llm-perplexity',
         type=float,
-        default=100.0,
-        help='LLMの最大perplexity値（デフォルト: 100.0）'
+        default=10.0,
+        help='LLMの最大perplexity値（デフォルト: 10.0、値が小さいほど厳格）'
     )
     parser.add_argument(
         '--no-auto-detect',

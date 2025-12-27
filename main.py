@@ -141,8 +141,8 @@ def main():
     parser.add_argument(
         '--max-kenlm-perplexity',
         type=float,
-        default=100.0,
-        help='KenLMの最大perplexity値（デフォルト: 100.0）'
+        default=15000.0,
+        help='KenLMの最大perplexity値（デフォルト: 500.0）'
     )
     # Phase 3: LLM設定
     parser.add_argument(

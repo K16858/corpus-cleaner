@@ -26,20 +26,15 @@ class CorpusCleaner:
         self.max_html_ratio = self.config.get('max_html_ratio', 0.2)
         self.max_emoji_ratio = self.config.get('max_emoji_ratio', 0.1)
         self.max_repeat_chars = self.config.get('max_repeat_chars', 3)
-        # 文分割の厳格化
         self.max_sentence_length = self.config.get('max_sentence_length', 500)
         self.require_sentence_end = self.config.get('require_sentence_end', True)
         self.min_sentence_end_ratio = self.config.get('min_sentence_end_ratio', 0.7)
-        # ひらがな・カタカナ・漢字の比率
         self.min_hiragana_ratio = self.config.get('min_hiragana_ratio', 0.3)
         self.max_hiragana_ratio = self.config.get('max_hiragana_ratio', 0.8)
         self.min_kanji_ratio = self.config.get('min_kanji_ratio', 0.1)
         self.max_kanji_ratio = self.config.get('max_kanji_ratio', 0.5)
         
-        # 重複検出用のセット
         self.seen_texts: Set[str] = set()
-        
-        # 統計情報
         self.stats = defaultdict(int)
     
     def clean(self, entry: Dict[str, Any], text_field: str = 'text') -> Optional[Dict[str, Any]]:
@@ -74,12 +69,10 @@ class CorpusCleaner:
             self.stats['impurity_filtered'] += 1
             return None
         
-        # 文分割の厳格化チェック
         if not self._check_sentence_structure(text):
             self.stats['sentence_structure_filtered'] += 1
             return None
         
-        # ひらがな・カタカナ・漢字の比率チェック
         if not self._check_japanese_character_ratio(text):
             self.stats['japanese_character_ratio_filtered'] += 1
             return None

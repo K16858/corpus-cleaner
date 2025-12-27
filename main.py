@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from corpus_cleaner.cleaner import CorpusCleaner
-from corpus_cleaner.processor import JSONLProcessor
+from corpus_cleaner.pipeline import ProcessingPipeline
 
 def main():
     parser = argparse.ArgumentParser(
@@ -119,6 +119,56 @@ def main():
         default=0.5,
         help='漢字の最大比率（デフォルト: 0.5）'
     )
+    # Phase 2: KenLM設定
+    parser.add_argument(
+        '--kenlm-model',
+        type=str,
+        default=None,
+        help='KenLMモデルファイルのパス（Phase 2で使用、未指定の場合は自動検出を試みる）'
+    )
+    parser.add_argument(
+        '--no-kenlm',
+        action='store_true',
+        default=False,
+        help='KenLM処理を無効化'
+    )
+    parser.add_argument(
+        '--max-kenlm-perplexity',
+        type=float,
+        default=100.0,
+        help='KenLMの最大perplexity値（デフォルト: 100.0）'
+    )
+    # Phase 3: LLM設定
+    parser.add_argument(
+        '--use-llm',
+        action='store_true',
+        default=None,
+        help='LLMによる最終評価を有効化（Phase 3、未指定の場合は自動検出）'
+    )
+    parser.add_argument(
+        '--no-llm',
+        action='store_true',
+        default=False,
+        help='LLM処理を無効化'
+    )
+    parser.add_argument(
+        '--llm-model',
+        type=str,
+        default='rinna/gemma-2-baku-2b',
+        help='LLMモデル名（デフォルト: rinna/gemma-2-baku-2b）'
+    )
+    parser.add_argument(
+        '--max-llm-perplexity',
+        type=float,
+        default=100.0,
+        help='LLMの最大perplexity値（デフォルト: 100.0）'
+    )
+    parser.add_argument(
+        '--no-auto-detect',
+        action='store_true',
+        default=False,
+        help='モデルの自動検出を無効化'
+    )
     parser.add_argument(
         '--stats-output',
         type=str,
@@ -155,9 +205,25 @@ def main():
         'max_kanji_ratio': args.max_kanji_ratio,
     }
     
-    # クリーナーとプロセッサーの作成
+    # クリーナーとパイプラインの作成
     cleaner = CorpusCleaner(config)
-    processor = JSONLProcessor(cleaner, args.text_field)
+    
+    # KenLMモデルパスの決定（--no-kenlmが指定されている場合はNone）
+    kenlm_model_path = None if args.no_kenlm else args.kenlm_model
+    
+    # LLM使用の決定（--no-llmが指定されている場合はFalse、--use-llmが指定されている場合はTrue、それ以外はNoneで自動判定）
+    use_llm = False if args.no_llm else (True if args.use_llm else None)
+    
+    pipeline = ProcessingPipeline(
+        cleaner=cleaner,
+        text_field=args.text_field,
+        kenlm_model_path=kenlm_model_path,
+        max_kenlm_perplexity=args.max_kenlm_perplexity,
+        use_llm=use_llm,
+        llm_model_name=args.llm_model,
+        max_llm_perplexity=args.max_llm_perplexity,
+        auto_detect_models=not args.no_auto_detect
+    )
     
     print(f"入力ファイル: {args.input}")
     print(f"出力ファイル: {args.output}")
@@ -165,34 +231,58 @@ def main():
     print()
     
     try:
-        # 処理実行
-        stats = processor.process_file(args.input, args.output)
+        # 3段階処理を実行
+        stats = pipeline.process_file(args.input, args.output)
         
         # 統計情報の出力
         with open(args.stats_output, 'w', encoding='utf-8') as f:
             json.dump(stats, f, ensure_ascii=False, indent=2)
         
         # 結果の表示
-        print()
+        print("\n" + "=" * 60)
+        print("最終処理結果")
         print("=" * 60)
-        print("処理結果")
-        print("=" * 60)
-        print(f"総処理数: {stats['total_processed']:,}")
-        print(f"保持数: {stats['total_kept']:,}")
-        print(f"除外数: {stats['total_excluded']:,}")
-        if stats['total_processed'] > 0:
-            keep_ratio = stats['total_kept'] / stats['total_processed'] * 100
-            print(f"保持率: {keep_ratio:.2f}%")
-        print()
-        print("除外理由:")
-        for key, value in stats.items():
-            if key not in ['total_processed', 'total_kept', 'total_excluded', 'kept'] and value > 0:
-                print(f"  {key}: {value:,}")
+        
+        # Phase 1の結果
+        if 'phase1' in stats:
+            phase1 = stats['phase1']
+            print(f"\nPhase 1 (基本クリーニング):")
+            print(f"  総処理数: {phase1.get('total_processed', 0):,}")
+            print(f"  保持数: {phase1.get('total_kept', 0):,}")
+            print(f"  除外数: {phase1.get('total_excluded', 0):,}")
+            if phase1.get('total_processed', 0) > 0:
+                keep_ratio = phase1.get('total_kept', 0) / phase1.get('total_processed', 1) * 100
+                print(f"  保持率: {keep_ratio:.2f}%")
+        
+        # Phase 2の結果
+        if 'phase2' in stats and stats['phase2']:
+            phase2 = stats['phase2']
+            print(f"\nPhase 2 (KenLM評価):")
+            print(f"  総処理数: {phase2.get('total_processed', 0):,}")
+            print(f"  保持数: {phase2.get('total_kept', 0):,}")
+            print(f"  除外数: {phase2.get('total_excluded', 0):,}")
+            if phase2.get('total_processed', 0) > 0:
+                keep_ratio = phase2.get('total_kept', 0) / phase2.get('total_processed', 1) * 100
+                print(f"  保持率: {keep_ratio:.2f}%")
+        
+        # Phase 3の結果
+        if 'phase3' in stats and stats['phase3']:
+            phase3 = stats['phase3']
+            print(f"\nPhase 3 (LLM評価):")
+            print(f"  総処理数: {phase3.get('total_processed', 0):,}")
+            print(f"  保持数: {phase3.get('total_kept', 0):,}")
+            print(f"  除外数: {phase3.get('total_excluded', 0):,}")
+            if phase3.get('total_processed', 0) > 0:
+                keep_ratio = phase3.get('total_kept', 0) / phase3.get('total_processed', 1) * 100
+                print(f"  保持率: {keep_ratio:.2f}%")
+        
         print()
         print(f"統計情報を保存しました: {args.stats_output}")
         
     except Exception as e:
         print(f"エラーが発生しました: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 

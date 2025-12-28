@@ -191,7 +191,7 @@ class ProcessingPipeline:
         """Phase 1: 基本クリーニング処理"""
         total_lines = self._count_lines(input_path)
         
-        with open(input_path, 'r', encoding='utf-8') as infile, \
+        with open(input_path, 'r', encoding='utf-8', errors='replace') as infile, \
              open(output_path, 'w', encoding='utf-8') as outfile:
             
             pbar = tqdm(total=total_lines, desc="Phase 1: 基本クリーニング", disable=not show_progress)
@@ -241,7 +241,7 @@ class ProcessingPipeline:
         total_kept = 0
         total_filtered = 0
         
-        with open(input_path, 'r', encoding='utf-8') as infile, \
+        with open(input_path, 'r', encoding='utf-8', errors='replace') as infile, \
              open(output_path, 'w', encoding='utf-8') as outfile:
             
             pbar = tqdm(total=total_lines, desc="Phase 2: KenLM評価", disable=not show_progress)
@@ -303,7 +303,7 @@ class ProcessingPipeline:
         total_kept = 0
         total_filtered = 0
         
-        with open(input_path, 'r', encoding='utf-8') as infile, \
+        with open(input_path, 'r', encoding='utf-8', errors='replace') as infile, \
              open(output_path, 'w', encoding='utf-8') as outfile:
             
             pbar = tqdm(total=total_lines, desc="Phase 3: LLM評価", disable=not show_progress)
@@ -344,7 +344,7 @@ class ProcessingPipeline:
     def _count_lines(self, file_path: str) -> int:
         """ファイルの行数をカウント"""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
                 return sum(1 for _ in f)
         except Exception:
             return -1

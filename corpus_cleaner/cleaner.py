@@ -2,10 +2,13 @@
 
 import re
 import unicodedata
+import warnings
 from typing import Dict, Any, Optional, Set
 from html.parser import HTMLParser
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 from collections import defaultdict
+
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 
 class CorpusCleaner:

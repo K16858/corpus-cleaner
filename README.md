@@ -29,8 +29,8 @@ python main.py data/input.jsonl -o data/output_cleaned.jsonl
 # modelディレクトリにモデルを配置
 mkdir -p model
 # KenLMモデルをダウンロード
-wget -c  -P data/lm_sp http://dl.fbaipublicfiles.com/cc_net/lm/ja.arpa.bin
-wget -c  -P data/lm_sp http://dl.fbaipublicfiles.com/cc_net/lm/ja.sp.model
+wget -c  -P model/ http://dl.fbaipublicfiles.com/cc_net/lm/ja.arpa.bin
+wget -c  -P model/ http://dl.fbaipublicfiles.com/cc_net/lm/ja.sp.model
 ```
 
 モデルは別のものでも構いません。
